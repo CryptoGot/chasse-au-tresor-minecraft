@@ -26,7 +26,7 @@
 
   /* ---------- sauvegarde ---------- */
   const SAVE = 'mc-chasse-v1';
-  const fresh = () => ({ step: 0, hearts: 10, wrong: 0, hints: H.quetes.map(() => 0), deaths: 0, start: null, end: null, found: false });
+  const fresh = () => ({ step: 0, hearts: 10, wrong: 0, hints: H.quetes.map(() => 0), deaths: 0, start: null, end: null, found: false, lockUntil: 0 });
   let S = (function () {
     try { const s = JSON.parse(localStorage.getItem(SAVE)); if (s && typeof s.step === 'number') return Object.assign(fresh(), s); } catch (e) { /* stockage indisponible */ }
     return fresh();
@@ -84,7 +84,9 @@
     if (id !== 's-win') FW.stop();
   }
   function norm(s) {
-    return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
+      .replace(/^(?:(?:un|une|le|la|les|des|du)\s+|l['’]\s*)/, '')
+      .replace(/[^a-z0-9]/g, '');
   }
   function lev(a, b) {
     const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
@@ -94,15 +96,36 @@
     }
     return d[a.length][b.length];
   }
-  function check(v, list) {
+  function matchOne(v, list) {
     if (!list || !list.length) return true;
-    const n = norm(v);
+    const n = norm(v), nums = String(v).match(/\d+/g);
     return list.some((a) => {
       const m = norm(a);
       if (!m) return false;
-      if (/^\d+$/.test(n) && /^\d+$/.test(m)) return parseInt(n, 10) === parseInt(m, 10);
+      // nombre attendu : « 2 », « 02 » ou « 2 bancs » passent, pas « 1 2 3 »
+      if (/^\d+$/.test(m)) return !!nums && nums.length === 1 && parseInt(nums[0], 10) === parseInt(m, 10);
       return n === m || (m.length >= 5 && lev(n, m) <= 1);
     });
+  }
+  function perms(n) {
+    if (n <= 1) return [[0]];
+    const out = [];
+    perms(n - 1).forEach((p) => { for (let k = 0; k <= p.length; k++) out.push(p.slice(0, k).concat([n - 1], p.slice(k))); });
+    return out;
+  }
+  const champsOf = (q) => q.champs || [{ label: null, reponses: q.reponses, clavier: q.clavier }];
+  function checkAll(vals, q) {
+    const ch = champsOf(q);
+    if (q.ordreLibre) return perms(ch.length).some((p) => p.every((ci, k) => matchOne(vals[k], ch[ci].reponses)));
+    return ch.every((c, k) => matchOne(vals[k], c.reponses));
+  }
+  const ATTENTE = H.ATTENTE_MS || 30000;
+  let lockTimer;
+  function updateLock() {
+    clearTimeout(lockTimer);
+    const left = Math.ceil(((S.lockUntil || 0) - Date.now()) / 1000), b = $('#btn-submit');
+    if (left > 0) { b.disabled = true; b.textContent = 'Attendez ' + left + ' s…'; lockTimer = setTimeout(updateLock, 250); }
+    else { b.disabled = false; b.textContent = 'Valider'; }
   }
   function fmt(ms) {
     const m = Math.max(1, Math.round(ms / 60000));
@@ -147,7 +170,7 @@
     '<li><img src="' + I.map + '" alt="">Chaque quête est une énigme qui vous mène à un endroit du village.</li>' +
     '<li><img src="' + I.grass + '" alt="">Une fois sur place, répondez à la question : la réponse se trouve sur place, impossible de tricher !</li>' +
     '<li><img src="' + I.torch + '" alt="">Bloqués ? Utilisez un indice.</li>' +
-    '<li><img src="' + I.heart + '" alt="">Chaque mauvaise réponse vous coûte un cœur…</li>' +
+    '<li><img src="' + I.heart + '" alt="">Chaque mauvaise réponse vous coûte un cœur… et ' + Math.round(ATTENTE / 1000) + ' secondes d\'attente !</li>' +
     '</ul>' +
     '<div class="warn"><img src="' + I.creeper + '" alt="">Restez ensemble et attention aux voitures : c\'est plus dangereux qu\'un creeper !</div>';
 
@@ -239,10 +262,13 @@
     $('#answer-form').hidden = isBtn;
     $('#btn-confirm').hidden = !isBtn;
     if (isBtn) $('#btn-confirm').textContent = q.bouton;
-    const inp = $('#answer');
-    inp.value = '';
-    inp.setAttribute('inputmode', q.clavier === 'numeric' ? 'numeric' : 'text');
+    $('#fields').innerHTML = champsOf(q).map((c, k) =>
+      (c.label ? '<label class="field-label" for="ans' + k + '">' + c.label + '</label>' : '') +
+      '<input class="mc-input" id="ans' + k + '" type="text" inputmode="' + (c.clavier === 'numeric' ? 'numeric' : 'text') + '"' +
+      ' autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Votre réponse…"' + (c.label ? '' : ' aria-label="Votre réponse"') + '>'
+    ).join('');
     $('#feedback').innerHTML = '';
+    updateLock();
     renderHud();
     show('s-quest');
   }
@@ -257,9 +283,12 @@
   $('#answer-form').addEventListener('submit', (e) => {
     e.preventDefault();
     Snd.init();
-    const v = $('#answer').value;
-    if (!norm(v)) { shake($('#answer-panel')); $('#answer').focus(); return; }
-    if (check(v, H.quetes[S.step].reponses)) { $('#answer').blur(); success(); } else fail();
+    if ((S.lockUntil || 0) > Date.now()) { shake($('#answer-panel')); return; }
+    const inputs = Array.from(document.querySelectorAll('#fields input'));
+    const empty = inputs.find((el) => !norm(el.value) && !/\d/.test(el.value));
+    if (empty) { shake($('#answer-panel')); empty.focus(); return; }
+    inputs.forEach((el) => el.blur());
+    if (checkAll(inputs.map((el) => el.value), H.quetes[S.step])) success(); else fail();
   });
   $('#btn-confirm').addEventListener('click', () => {
     Snd.init(); Snd.click();
@@ -272,11 +301,14 @@
   function shake(el) { el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); }
   const HMM = ["Hmm… Ce n'est pas ça.", 'Hrmm ! Mauvaise réponse.', 'Hmm hmm… Regardez mieux autour de vous !', 'Hrrm… Toujours pas !', 'Hmm… Vous êtes au bon endroit ?'];
   function fail() {
-    S.wrong++; S.hearts = Math.max(0, S.hearts - 1); save();
+    S.wrong++; S.hearts = Math.max(0, S.hearts - 1); S.lockUntil = Date.now() + ATTENTE; save();
+    updateLock();
     Snd.hurt(); setTimeout(() => Snd.hmm(), 150);
     const f = document.createElement('div'); f.className = 'hurt-flash'; document.body.appendChild(f); setTimeout(() => f.remove(), 500);
     shake($('#answer-panel'));
-    $('#feedback').innerHTML = '<div class="chat"><img src="' + I.villager + '" alt=""><span><span class="who">&lt;Villageois&gt;</span> ' + HMM[S.wrong % HMM.length] + '</span></div>';
+    const several = champsOf(H.quetes[S.step]).length > 1;
+    $('#feedback').innerHTML = '<div class="chat"><img src="' + I.villager + '" alt=""><span><span class="who">&lt;Villageois&gt;</span> ' +
+      (several ? 'Hrmm… Au moins une réponse est fausse !' : HMM[S.wrong % HMM.length]) + ' Réfléchissez ' + Math.round(ATTENTE / 1000) + ' secondes…</span></div>';
     renderHud();
     $('#hearts').classList.remove('blink'); void $('#hearts').offsetWidth; $('#hearts').classList.add('blink');
     if (S.hearts <= 0) setTimeout(death, 800);
@@ -290,7 +322,8 @@
 
   function success() {
     const i = S.step, q = H.quetes[i];
-    S.step++; S.hearts = Math.min(10, S.hearts + 2); save();
+    S.step++; S.hearts = Math.min(10, S.hearts + 2); S.lockUntil = 0; save();
+    clearTimeout(lockTimer);
     Snd.levelup();
     for (let k = 0; k < 4; k++) setTimeout(() => Snd.orb(), 450 + k * 110);
     toast('Progrès réalisé !', q.progres, q.objet);

@@ -2,10 +2,13 @@
    CONFIG DE LA CHASSE AU TRÉSOR
    C'est ici qu'on change les énigmes, les questions et les RÉPONSES.
 
-   • reponses : liste des réponses acceptées. Majuscules, accents et
-     espaces sont ignorés ; une petite faute de frappe passe (mots de
-     5 lettres ou plus). "07" = "7".
+   • reponses : liste des réponses acceptées. Majuscules, accents,
+     espaces et articles (un, le, la…) sont ignorés ; une petite faute
+     de frappe passe (mots de 5 lettres ou plus). "07" = "7" = "7 bancs".
    • reponses: []  →  n'importe quelle réponse est acceptée.
+   • champs : plusieurs questions à la fois (il faut avoir bon partout).
+     ordreLibre: true → les réponses peuvent être dans n'importe quel ordre.
+   • Après une mauvaise réponse : 30 secondes d'attente (ATTENTE_MS).
    • Astuce Maître du Jeu : taper 5 fois vite sur « Quête X/5 »
      permet de passer une étape si quelque chose bloque sur place.
    ================================================================ */
@@ -13,6 +16,7 @@ window.HUNT = {
   joueur: 'Arthur',
   equipe: 'Arthur et sa team',
   maitre: 'Maître du Jeu',
+  ATTENTE_MS: 30000, // attente après une mauvaise réponse (anti-triche)
 
   // Case de la carte du jardin où est caché le trésor (colonne x, ligne y)
   // → ici : au milieu du massif de roses blanches
@@ -33,9 +37,11 @@ window.HUNT = {
         `Avant les robinets, les villageois venaient y remplir leurs seaux…`,
         `C'est la <b>fontaine</b> du village !`
       ],
-      question: `Combien de jets d'eau sortent de la fontaine ?`,
-      reponses: [], // ⚠️ À REMPLIR
-      clavier: 'text'
+      question: `Deux questions : il faut avoir bon aux <b>deux</b> !`,
+      champs: [
+        { label: `Quelle tête d'animal est représentée à cet endroit ?`, reponses: ['lion', 'lions', 'tête de lion'] },
+        { label: `Combien y a-t-il de bancs ?`, reponses: ['2', 'deux'], clavier: 'numeric' }
+      ]
     },
     {
       titre: "L'ancienne base",
@@ -50,9 +56,11 @@ window.HUNT = {
       indices: [
         `Pense à l'endroit où j'habitais avant d'emménager ici…`
       ],
-      question: `Quel est le numéro de la maison ?`,
-      reponses: [], // ⚠️ À REMPLIR (ex : ['12'])
-      clavier: 'numeric'
+      question: `Deux questions : il faut avoir bon aux <b>deux</b> !`,
+      champs: [
+        { label: `Quel est le numéro de la maison ?`, reponses: ['3', 'trois'], clavier: 'numeric' },
+        { label: `Quel nom de famille est écrit sur la boîte aux lettres ?`, reponses: ['Grosjean', 'Monsieur Grosjean', 'M Grosjean', 'Mr Grosjean', 'Famille Grosjean'] }
+      ]
     },
     {
       titre: 'Le bloc qui cuit tout',
@@ -70,7 +78,7 @@ window.HUNT = {
         `Le <b>four</b> de la cuisine, chez Arthur !`
       ],
       question: `Quelle est la marque écrite sur le four ?`,
-      reponses: [], // ⚠️ À REMPLIR (ex : ['Bosch'])
+      reponses: ['Electrolux'],
       clavier: 'text'
     },
     {
@@ -87,9 +95,13 @@ window.HUNT = {
         `J'ai fait la guerre, il y a très très longtemps…`,
         `Je suis le <b>tank</b> de Manleve !`
       ],
-      question: `Quel numéro est peint sur le tank ?`,
-      reponses: [], // ⚠️ À REMPLIR
-      clavier: 'text'
+      question: `Quelles sont les <b>3 couleurs</b> du logo de cet endroit ? (dans n'importe quel ordre)`,
+      ordreLibre: true, // les 3 couleurs peuvent être données dans n'importe quel ordre
+      champs: [
+        { label: 'Couleur 1', reponses: ['noir', 'noire'] },
+        { label: 'Couleur 2', reponses: ['jaune'] },
+        { label: 'Couleur 3', reponses: ['rouge'] }
+      ]
     },
     {
       titre: 'Retour au spawn',
