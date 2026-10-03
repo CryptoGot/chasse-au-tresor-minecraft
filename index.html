@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1d140d">
+<title>Chasse au Trésor — Édition Arthur</title>
+<link id="fav" rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="pano" aria-hidden="true"></canvas>
+
+<!-- ÉCRAN TITRE -->
+<section id="s-title" class="screen">
+  <div class="logo-wrap">
+    <h1 class="logo"><span class="l1">Chasse au</span><span class="l2">Trésor</span></h1>
+    <div class="edition">ÉDITION <span id="ed-name">ARTHUR</span></div>
+    <div class="splash" id="splash"></div>
+  </div>
+  <div class="menu">
+    <button class="mc-btn primary" id="btn-play">Jouer</button>
+    <div class="title-note" id="title-note"></div>
+    <button class="mc-btn" id="btn-reset" hidden>Recommencer</button>
+  </div>
+  <div class="foot l">Chasse au Trésor 1.0</div>
+  <div class="foot r">Édition Village</div>
+</section>
+
+<!-- INTRO -->
+<section id="s-intro" class="screen dirt">
+  <div class="wrap">
+    <article class="book">
+      <div class="book-head"><span class="book-num" id="intro-from">Message du Maître du Jeu</span><h2>Bienvenue, aventuriers !</h2></div>
+      <div class="book-text" id="intro-text"></div>
+    </article>
+    <button class="mc-btn primary" id="btn-start">C'est parti !</button>
+    <button class="mc-btn small" id="btn-intro-back">Retour</button>
+  </div>
+</section>
+
+<!-- QUÊTE -->
+<section id="s-quest" class="screen dirt">
+  <div class="wrap">
+    <header class="hud">
+      <div class="hud-top">
+        <button class="quest-label" id="quest-label">Quête 1/5</button>
+        <button class="icon-btn" id="btn-sound" aria-label="Activer ou couper le son">SON</button>
+      </div>
+      <div class="hearts" id="hearts" aria-label="Cœurs"></div>
+      <div class="xp"><div class="xp-level" id="xp-level">0</div><div class="xp-bar"><div class="xp-fill" id="xp-fill"></div></div></div>
+      <div class="hotbar" id="hotbar"></div>
+    </header>
+
+    <article class="book" id="q-book">
+      <div class="book-head"><span class="book-num" id="q-num">Énigme 1</span><h2 id="q-title"></h2></div>
+      <div id="q-visual"></div>
+      <div class="book-text" id="q-text"></div>
+      <div class="hints" id="q-hints"></div>
+      <button class="mc-btn small hint-btn" id="btn-hint"></button>
+    </article>
+
+    <div class="panel" id="answer-panel">
+      <h3>Une fois sur place…</h3>
+      <p class="question" id="q-question"></p>
+      <form class="answer-form" id="answer-form" autocomplete="off">
+        <input class="mc-input" id="answer" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Votre réponse…" aria-label="Votre réponse">
+        <button class="mc-btn primary" type="submit">Valider</button>
+      </form>
+      <button class="mc-btn primary" id="btn-confirm" hidden></button>
+      <div id="feedback"></div>
+    </div>
+  </div>
+</section>
+
+<!-- CHARGEMENT -->
+<section id="s-loading" class="screen dirt">
+  <div class="load-title">Génération du monde</div>
+  <div class="load-msg" id="load-msg">Construction du terrain</div>
+  <div class="load-bar"><div class="load-fill" id="load-fill"></div></div>
+  <div class="load-pct" id="load-pct">0%</div>
+</section>
+
+<!-- CARTE AU TRÉSOR -->
+<section id="s-map" class="screen dirt">
+  <div class="wrap">
+    <div class="map-title">Carte au trésor</div>
+    <div class="map-frame" id="map-wrap">
+      <div class="map-inner">
+        <canvas id="map" aria-label="Carte du jardin en blocs, la croix rouge marque le trésor"></canvas>
+        <div class="map-labels" id="map-labels"></div>
+      </div>
+    </div>
+    <div class="panel legend">
+      <div><span class="sym x">X</span><span>La croix rouge marque le <b>trésor</b>.</span></div>
+      <div><span class="sym me">▲</span><span>La flèche blanche, c'est votre spawn : la maison.</span></div>
+    </div>
+    <button class="mc-btn primary" id="btn-found" disabled>On a trouvé le trésor !</button>
+  </div>
+</section>
+
+<!-- VICTOIRE -->
+<section id="s-win" class="screen">
+  <canvas id="fw" aria-hidden="true"></canvas>
+  <div class="win-wrap">
+    <div class="win-title">Défi relevé !</div>
+    <img class="win-chest" id="win-chest" alt="Coffre au trésor">
+    <h2 class="win-sub">Maîtres de la chasse au trésor</h2>
+    <p class="win-text" id="win-text"></p>
+    <div class="panel stats" id="win-stats"></div>
+    <button class="mc-btn" id="btn-win-title">Écran titre</button>
+  </div>
+</section>
+
+<!-- MORT -->
+<section id="s-dead" class="screen">
+  <div class="dead-wrap">
+    <h1>Vous êtes mort !</h1>
+    <p>Cause : trop de mauvaises réponses</p>
+    <p>Score : <span class="y" id="dead-score">0</span></p>
+    <button class="mc-btn" id="btn-respawn">Réapparaître</button>
+  </div>
+</section>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="modal" role="dialog" aria-modal="true"></div>
+
+<script src="config.js"></script>
+<script src="gfx.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
