@@ -458,13 +458,7 @@
   const HEIGHT = { L: 6, W: 6, h: 3, r: 3, B: 3, i: 3, w: 4, b: 2, x: 2, m: 2, u: 2, O: 2, o: 1, n: 1 };
   const GROUND = { u: 's', x: 's', w: 's', o: 's', O: 's', n: 's' };
   const PLAYER = { x: 12, y: 27 };
-  const LABELS = [
-    { t: 'Saule pleureur', x: 17.5, y: 8 },
-    { t: 'Trampoline', x: 2.5, y: 12 },
-    { t: 'Terrasse', x: 6, y: 18.5 },
-    { t: 'Gravier', x: 17, y: 21.5 },
-    { t: 'Maison', x: 5.5, y: 29 }
-  ];
+  const LABELS = []; // pas de noms sur la carte : à eux de reconnaître le jardin
 
   function buildMap() {
     const c = cnv(MAP_W * 16, MAP_H * 16), x = c.getContext('2d');
